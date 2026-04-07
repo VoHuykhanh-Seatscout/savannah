@@ -43,3 +43,5 @@ next-env.d.ts
 # Ignore environment variables
 .env.local
 .env
+.next*
+package-lock*.json
