@@ -33,6 +33,7 @@ function VerifyContent() {
   const [hasVerified, setHasVerified] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (isVerifying) {
@@ -47,7 +48,13 @@ function VerifyContent() {
     if (status === "authenticated" && !redirecting) {
       setProgress(100);
       setTimeout(() => {
-        router.replace("/");
+        // Redirect based on user role
+        const role = session?.user?.role?.toLowerCase();
+        if (role === "teacher") {
+          router.replace("/teacher-dashboard");
+        } else {
+          router.replace("/");
+        }
       }, 800);
       return;
     }
@@ -76,20 +83,36 @@ function VerifyContent() {
         if (data.isVerified) {
           setMessage("Welcome to Savannah!");
           setHasVerified(true);
+          setUserRole(data.role);
           setProgress(70);
 
           // Try to sign in automatically
-          await signIn("credentials", {
+          const signInResult = await signIn("credentials", {
             email: data.email,
             password: "",
             redirect: false,
           });
 
+          if (signInResult?.error) {
+            console.error("Auto-login error:", signInResult.error);
+            // If auto-login fails, redirect to login page
+            setTimeout(() => {
+              router.replace("/login?verified=true");
+            }, 1000);
+            return;
+          }
+
           setProgress(100);
           setRedirecting(true);
           
+          // Wait a moment then redirect based on role
           setTimeout(() => {
-            router.replace("/");
+            const role = data.role?.toLowerCase();
+            if (role === "teacher") {
+              router.replace("/teacher-dashboard");
+            } else {
+              router.replace("/");
+            }
           }, 1000);
         } else {
           setMessage("Verification incomplete");
@@ -106,7 +129,7 @@ function VerifyContent() {
     if (!hasVerified && !isVerifying && status !== "authenticated") {
       verifyEmail();
     }
-  }, [searchParams, status, router, hasVerified, isVerifying, redirecting]);
+  }, [searchParams, status, router, hasVerified, isVerifying, redirecting, session]);
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans relative overflow-hidden"
