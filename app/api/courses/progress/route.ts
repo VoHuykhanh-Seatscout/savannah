@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     let totalLessons = 0;
     let completedLessons = 0;
     let totalScore = 0;
-    let totalModules = enrollment.moduleProgress.length;
+    const totalModules = enrollment.moduleProgress.length;
     let completedModules = 0;
 
     for (const mp of enrollment.moduleProgress) {

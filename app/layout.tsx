@@ -3,7 +3,6 @@
 import { SessionProvider } from "next-auth/react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Inter } from 'next/font/google';
-import "./globals.css";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const inter = Inter({ subsets: ['latin'] });

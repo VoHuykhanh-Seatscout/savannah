@@ -2,11 +2,12 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from '@/components/Navbar';
 import { ChevronRight, LogOut, Clock, Award } from "lucide-react";
+import { motion } from "framer-motion";
+
 
 // Savannah brand colors
 const savannahColors = {

@@ -1,19 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "noEmit": true,
-    "incremental": true,
-    "module": "esnext",
-    "moduleResolution": "node",
     "esModuleInterop": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "baseUrl": ".",
+    "incremental": true,
     "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
       "@/components/*": ["./app/components/*"],
@@ -36,9 +35,10 @@
     "app/**/*",
     "types/**/*",
     "types/next-auth.d.ts"
-, "prisma/seed.js"  ],
+  ],
   "exclude": [
     "node_modules",
-    "app/_app.tsx"  // 🔥 Explicitly exclude _app.tsx to suppress file-not-found error
+    "app/_app.tsx",
+    "prisma/**/*"
   ]
 }

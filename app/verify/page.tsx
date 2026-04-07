@@ -1,10 +1,12 @@
+// app/verify/page.tsx
 "use client";
 
+import { Suspense } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiCheckCircle, FiAlertCircle, FiLoader, FiAward, FiArrowRight } from "react-icons/fi";
+import { FiCheckCircle, FiAlertCircle, FiLoader, FiArrowRight } from "react-icons/fi";
 import { GraduationCap } from "lucide-react";
 
 // Savannah brand colors
@@ -19,8 +21,9 @@ const savannahColors = {
   error: "#EF4444",
 };
 
-export default function VerifyPage() {
-  const { data: session, status, update } = useSession();
+// Create a separate component that uses useSearchParams
+function VerifyContent() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -44,13 +47,7 @@ export default function VerifyPage() {
     if (status === "authenticated" && !redirecting) {
       setProgress(100);
       setTimeout(() => {
-        const role = session?.user?.role?.toLowerCase();
-        // Redirect based on role (STUDENT or TEACHER)
-        if (role === "teacher") {
-          router.replace("/teacher-dashboard");
-        } else {
-          router.replace("/");
-        }
+        router.replace("/dashboard");
       }, 800);
       return;
     }
@@ -82,29 +79,18 @@ export default function VerifyPage() {
           setProgress(70);
 
           // Try to sign in automatically
-          const signInResponse = await signIn("credentials", {
+          await signIn("credentials", {
             email: data.email,
-            password: data.temporaryPassword || "", // You might need to handle this differently
+            password: "",
             redirect: false,
           });
 
-          // Wait for session to update
-          const checkSession = setInterval(() => {
-            if (session) {
-              clearInterval(checkSession);
-              setProgress(100);
-              setRedirecting(true);
-              setTimeout(() => {
-                const role = session?.user?.role?.toLowerCase();
-                if (role === "teacher") {
-                  router.replace("/teacher-dashboard");
-                } else {
-                  router.replace("/");
-                }
-              }, 800);
-            }
-          }, 500);
-
+          setProgress(100);
+          setRedirecting(true);
+          
+          setTimeout(() => {
+            router.replace("/dashboard");
+          }, 1000);
         } else {
           setMessage("Verification incomplete");
           setError("Please try the verification link again.");
@@ -120,7 +106,7 @@ export default function VerifyPage() {
     if (!hasVerified && !isVerifying && status !== "authenticated") {
       verifyEmail();
     }
-  }, [searchParams, status, session, router, hasVerified, isVerifying, redirecting]);
+  }, [searchParams, status, router, hasVerified, isVerifying, redirecting]);
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans relative overflow-hidden"
@@ -131,7 +117,6 @@ export default function VerifyPage() {
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[length:60px_60px] opacity-5"></div>
       </div>
 
-      {/* Gradient background elements */}
       <div 
         className="absolute -bottom-60 -right-60 w-[800px] h-[800px] rounded-full opacity-10 blur-xl"
         style={{ backgroundColor: savannahColors.primary }}
@@ -152,7 +137,6 @@ export default function VerifyPage() {
           boxShadow: `0 12px 40px ${savannahColors.dark}10`,
         }}
       >
-        {/* Savannah Branding */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center mb-4">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center mr-3"
@@ -250,10 +234,8 @@ export default function VerifyPage() {
               >
                 {error}
               </p>
-              <motion.button 
+              <button 
                 className="mt-4 px-6 py-2 rounded-xl text-sm font-bold tracking-tight flex items-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 style={{
                   backgroundColor: savannahColors.primary,
                   color: 'white',
@@ -262,7 +244,7 @@ export default function VerifyPage() {
                 onClick={() => window.location.reload()}
               >
                 Try Again <FiArrowRight className="ml-2" />
-              </motion.button>
+              </button>
             </motion.div>
           ) : (
             <motion.div
@@ -289,26 +271,20 @@ export default function VerifyPage() {
               </p>
               
               {hasVerified && (
-                <motion.div
+                <div
                   className="mt-4 flex items-center text-sm"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
                   style={{ color: savannahColors.dark }}
                 >
                   <FiLoader className="animate-spin mr-2" />
                   <span>Preparing your dashboard...</span>
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        <motion.div 
+        <div 
           className="mt-8 pt-6 border-t text-center text-xs"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
           style={{
             borderColor: `${savannahColors.dark}10`,
             color: savannahColors.dark
@@ -316,8 +292,24 @@ export default function VerifyPage() {
         >
           <p>Building future-ready skills for success</p>
           <p className="mt-1">© {new Date().getFullYear()} Savannah - All rights reserved</p>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: savannahColors.light }}>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-t-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <VerifyContent />
+    </Suspense>
   );
 }

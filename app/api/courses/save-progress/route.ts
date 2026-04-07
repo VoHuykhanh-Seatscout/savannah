@@ -78,15 +78,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
     
-    // Find the specific lesson
+    // Find the specific lesson (renamed variable to 'mod' to avoid conflict)
     let targetLesson = null;
     let targetModule = null;
     
-    for (const module of course.modules) {
-      for (const lesson of module.lessons) {
+    for (const mod of course.modules) {
+      for (const lesson of mod.lessons) {
         if (lesson.id === lessonId) {
           targetLesson = lesson;
-          targetModule = module;
+          targetModule = mod;
           break;
         }
       }
@@ -94,12 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!targetLesson || !targetModule) {
-  return NextResponse.json({ error: "Lesson or Module not found" }, { status: 404 });
-}
-
-    
-    if (!targetLesson) {
-      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+      return NextResponse.json({ error: "Lesson or Module not found" }, { status: 404 });
     }
 
     // Find or create module progress
@@ -119,9 +114,6 @@ export async function POST(req: NextRequest) {
         },
       });
     }
-
-    
-
 
     // Find or create lesson progress
     let lessonProgress = await prisma.lessonProgress.findFirst({

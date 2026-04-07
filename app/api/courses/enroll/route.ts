@@ -125,18 +125,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create module progress for each module
-    for (const module of modules) {
+    // Create module progress for each module (renamed variable to 'mod' to avoid conflict)
+    for (const mod of modules) {
       const moduleProgress = await prisma.moduleProgress.create({
         data: {
           enrollmentId: enrollment.id,
-          moduleId: module.id,
+          moduleId: mod.id,
           userId: user.id,
         },
       });
 
       // Create lesson progress for each lesson
-      for (const lesson of module.lessons) {
+      for (const lesson of mod.lessons) {
         await prisma.lessonProgress.create({
           data: {
             moduleProgressId: moduleProgress.id,
