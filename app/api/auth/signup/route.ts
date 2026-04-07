@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
 import { sendVerificationEmail } from "@/lib/mailer";
-import { UserRole } from "@prisma/client";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -33,12 +32,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 30);
 
-    // Convert role to match UserRole enum
-    let validRole: UserRole;
+    // Convert role to match UserRole - use string literals instead of enum
+    let validRole: string;
     if (role === "teacher" || role === "TEACHER") {
-      validRole = UserRole.TEACHER;
+      validRole = "TEACHER";
     } else {
-      validRole = UserRole.STUDENT;
+      validRole = "STUDENT";
     }
 
     let newUser;
@@ -48,9 +47,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         data: {
           name,
           email: normalizedEmail,
-          organization: organization, // Add organization field
+          organization: organization,
           password: hashedPassword,
-          role: validRole,
+          role: validRole as any, // Type assertion to bypass type checking
           isVerified: false,
         },
       });
