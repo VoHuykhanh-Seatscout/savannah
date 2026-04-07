@@ -1,3 +1,4 @@
+// app/api/reset-password/update.js
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
@@ -8,22 +9,22 @@ export async function POST(req) {
   try {
     const { token, password } = await req.json();
 
-    // Find user by token
     const user = await prisma.user.findFirst({
       where: {
         resetToken: token,
-        resetTokenExpiry: { gte: new Date() }, // Ensure token is still valid
+        resetTokenExpiry: { gte: new Date() },
       },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 400 }
+      );
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update user with new password & clear token
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -36,6 +37,9 @@ export async function POST(req) {
     return NextResponse.json({ message: "Password updated successfully" });
   } catch (error) {
     console.error("Error updating password:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
