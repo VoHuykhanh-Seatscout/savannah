@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Roles
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+// Main User Model
+model User {
+  id                String              @id @default(cuid())
+  name              String
+  email             String              @unique
+  password          String?
+  role              UserRole            @default(STUDENT)
+  phone             String?
+  organization      String?
+  profileImage      String?
+  isVerified        Boolean             @default(false)
+  verificationToken String?
+  resetToken        String?             @unique
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  courses           Course[]            @relation("TeacherCourses")
+  enrollments       Enrollment[]
+  studentAnswers    StudentAnswer[]     // Fixed: added opposite relation
+  moduleProgress    ModuleProgress[]
+  teacherAnalytics  TeacherAnalytics[]  // Added opposite relation for teacher
+  sessions          Session[]           // Added opposite relation for sessions
+  accounts          Account[]           // Added opposite relation for accounts
+  
+  @@index([email])
+  @@index([role])
+}
+
+// Course Model
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  thumbnail   String?
+  category    String
+  level       String   // Beginner, Intermediate, Advanced
+  isPublished Boolean  @default(false)
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  teacher        User                @relation("TeacherCourses", fields: [teacherId], references: [id])
+  modules        Module[]
+  enrollments    Enrollment[]
+  teacherAnalytics TeacherAnalytics[] // Added opposite relation for analytics
+  
+  @@index([teacherId])
+  @@index([isPublished])
+}
+
+// Module Model (Each course has multiple modules)
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int      // Module order in the course
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  moduleProgress ModuleProgress[]
+  
+  @@unique([courseId, order])
+}
+
+// Lesson Model (Each module has a video lesson + quiz)
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  videoUrl    String   // YouTube video URL
+  videoDuration Int?   // Duration in seconds
+  order       Int      // Lesson order in the module
+  moduleId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  lessonProgress LessonProgress[]
+  
+  @@unique([moduleId, order])
+}
+
+// Question Model (For quizzes)
+model Question {
+  id            String         @id @default(cuid())
+  text          String
+  type          QuestionType   @default(MULTIPLE_CHOICE)
+  options       Json?          // Array of options for multiple choice
+  correctAnswer String         // The correct answer text
+  explanation   String?        // Explanation for the answer
+  order         Int            // Question order in the lesson
+  lessonId      String
+  createdAt     DateTime       @default(now())
+  
+  // Relations
+  lesson        Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentAnswers StudentAnswer[]
+  
+  @@unique([lessonId, order])
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  TEXT
+}
+
+// Student Enrollment in a Course
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  enrolledAt DateTime @default(now())
+  completed  Boolean  @default(false)
+  completedAt DateTime?
+  
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleProgress ModuleProgress[]
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+// Track progress through modules
+model ModuleProgress {
+  id         String   @id @default(cuid())
+  enrollmentId String
+  moduleId   String
+  completed  Boolean  @default(false)
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  score      Int?     // Overall module score percentage
+  
+  // Relations
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lessonProgress LessonProgress[]
+  user       User       @relation(fields: [userId], references: [id])
+  userId     String     // Added to fix relation
+  
+  @@unique([enrollmentId, moduleId])
+  @@index([userId])
+}
+
+// Track progress through individual lessons
+model LessonProgress {
+  id         String   @id @default(cuid())
+  moduleProgressId String
+  lessonId   String
+  completed  Boolean  @default(false)
+  videoWatched Boolean @default(false) // Track if video was watched
+  quizPassed Boolean  @default(false)
+  score      Int?     // Lesson quiz score percentage
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  
+  // Relations
+  moduleProgress ModuleProgress @relation(fields: [moduleProgressId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  answers    StudentAnswer[]
+  
+  @@unique([moduleProgressId, lessonId])
+}
+
+// Store student answers to questions
+model StudentAnswer {
+  id         String   @id @default(cuid())
+  lessonProgressId String
+  questionId String
+  answer     String   // Student's answer
+  isCorrect  Boolean
+  answeredAt DateTime @default(now())
+  
+  // Relations
+  lessonProgress LessonProgress @relation(fields: [lessonProgressId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   // Added to fix relation
+  
+  @@unique([lessonProgressId, questionId])
+  @@index([userId])
+}
+
+// Teacher Analytics
+model TeacherAnalytics {
+  id            String   @id @default(cuid())
+  teacherId     String
+  courseId      String
+  totalStudents Int      @default(0)
+  averageScore  Float    @default(0)
+  completionRate Float   @default(0)
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  teacher       User     @relation(fields: [teacherId], references: [id])
+  course        Course   @relation(fields: [courseId], references: [id])
+  
+  @@unique([teacherId, courseId])
+  @@index([teacherId])
+}
+
+// Session for NextAuth
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Account for NextAuth
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @map("refresh_token")
+  access_token      String? @map("access_token")
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @map("id_token")
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// Verification Token
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
