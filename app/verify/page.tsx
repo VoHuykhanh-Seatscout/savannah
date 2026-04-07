@@ -47,7 +47,7 @@ function VerifyContent() {
     if (status === "authenticated" && !redirecting) {
       setProgress(100);
       setTimeout(() => {
-        router.replace("/dashboard");
+        router.replace("/");
       }, 800);
       return;
     }
@@ -89,7 +89,7 @@ function VerifyContent() {
           setRedirecting(true);
           
           setTimeout(() => {
-            router.replace("/dashboard");
+            router.replace("/");
           }, 1000);
         } else {
           setMessage("Verification incomplete");
