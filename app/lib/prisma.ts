@@ -15,14 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-// Add proper type annotations for the middleware
-prisma.$use(async (params: any, next: (params: any) => Promise<any>) => {
-  try {
-    return await next(params);
-  } catch (error) {
-    console.error('Prisma error:', error);
-    throw error;
-  }
-});
+// Remove the $use middleware - it's not needed and causes errors
+// If you need error handling, do it in your API routes instead
 
 export default prisma;
