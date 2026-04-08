@@ -42,7 +42,6 @@ export default function Signup() {
   const [success, setSuccess] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [verified, setVerified] = useState<boolean>(false);
-  const [passwordStrength, setPasswordStrength] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [passwordsMatch, setPasswordsMatch] = useState<boolean>(false);
@@ -61,22 +60,12 @@ export default function Signup() {
   }, []);
 
   useEffect(() => {
-    const strength = getPasswordStrength(formData.password);
-    setPasswordStrength(strength);
-  }, [formData.password]);
-
-  useEffect(() => {
     setPasswordsMatch(formData.password === formData.confirmPassword);
   }, [formData.password, formData.confirmPassword]);
 
-  const getPasswordStrength = (password: string): string => {
-    if (!password) return "";
-    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-    const mediumRegex = /^((?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,})$/;
-
-    if (strongRegex.test(password)) return "Strong";
-    if (mediumRegex.test(password)) return "Medium";
-    return "Weak";
+  const validatePassword = (password: string): boolean => {
+    // Simple validation: just check if password is at least 4 characters
+    return password.length >= 4;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -103,8 +92,8 @@ export default function Signup() {
       return;
     }
 
-    if (passwordStrength === "Weak") {
-      setError("Password is too weak. Use a mix of uppercase, lowercase, numbers, and symbols.");
+    if (!validatePassword(password)) {
+      setError("Password must be at least 4 characters long.");
       setLoading(false);
       return;
     }
@@ -127,13 +116,6 @@ export default function Signup() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getStrengthColor = (strength: string): string => {
-    if (strength === "Strong") return "text-green-500";
-    if (strength === "Medium") return "text-yellow-500";
-    if (strength === "Weak") return "text-red-500";
-    return "text-gray-500";
   };
 
   return (
@@ -372,11 +354,9 @@ export default function Signup() {
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </motion.button>
                 </motion.div>
-                {formData.password && (
-                  <p className={`text-xs font-medium ${getStrengthColor(passwordStrength)} mt-1`}>
-                    Password Strength: {passwordStrength}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Password must be at least 4 characters
+                </p>
               </div>
 
               <div>
