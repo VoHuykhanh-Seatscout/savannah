@@ -6,17 +6,18 @@ import { motion } from "framer-motion";
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { GraduationCap, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react"; // ✅ Add this import
 
 // Savannah brand colors
 const savannahColors = {
-  primary: "#EA580C",     // Warm orange
-  secondary: "#F97316",   // Bright orange
-  accent: "#FBBF24",      // Amber yellow
-  dark: "#1F2937",        // Dark slate
-  light: "#FFFBEB",       // Warm cream
+  primary: "#EA580C",
+  secondary: "#F97316",
+  accent: "#FBBF24",
+  dark: "#1F2937",
+  light: "#FFFBEB",
   creative: "#8A2BE2",
-  success: "#10B981",     // Emerald green
-  error: "#EF4444",       // Red
+  success: "#10B981",
+  error: "#EF4444",
 };
 
 interface FormData {
@@ -83,6 +84,7 @@ export default function Signup() {
     }
 
     try {
+      // 1. Create the account
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -99,8 +101,21 @@ export default function Signup() {
         throw new Error(data.error || "Signup failed. Please try again.");
       }
 
-      // ✅ Redirect directly to home page after successful signup
-      router.push("/");
+      // 2. Auto-login after successful signup
+      const signInResult = await signIn("credentials", {
+        email,
+        password,
+        role: role.toUpperCase(),
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        // If auto-login fails, redirect to login page
+        router.push("/login");
+      } else {
+        // Redirect to home page (which will redirect to dashboard if authenticated)
+        router.push("/");
+      }
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
