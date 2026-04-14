@@ -1,7 +1,7 @@
 // app/signup/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { GraduationCap, Building2 } from "lucide-react";
@@ -35,47 +35,31 @@ export default function Signup() {
     organization: "",
     password: "",
     confirmPassword: "",
-    role: "student", // Default to student
+    role: "student",
   });
 
   const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [verified, setVerified] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [passwordsMatch, setPasswordsMatch] = useState<boolean>(false);
 
   const router = useRouter();
 
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "emailVerified" && event.newValue === "true") {
-        console.log("✅ Email verified detected via storage event.");
-        setVerified(true);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
-  useEffect(() => {
-    setPasswordsMatch(formData.password === formData.confirmPassword);
-  }, [formData.password, formData.confirmPassword]);
-
-  const validatePassword = (password: string): boolean => {
-    // Simple validation: just check if password is at least 4 characters
-    return password.length >= 4;
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === "password" || e.target.name === "confirmPassword") {
+      setPasswordsMatch(formData.password === e.target.value);
+    }
+  };
+
+  const validatePassword = (password: string): boolean => {
+    return password.length >= 4;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
     setLoading(true);
 
     const { name, email, organization, password, confirmPassword, role } = formData;
@@ -106,14 +90,21 @@ export default function Signup() {
       });
 
       const data = await res.json();
-      if (res.status === 409) throw new Error("Email already in use. Please log in.");
-      if (!res.ok) throw new Error(data.error || "Signup failed. Please try again.");
+      
+      if (res.status === 409) {
+        throw new Error("Email already in use. Please log in.");
+      }
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Signup failed. Please try again.");
+      }
 
-      setSuccess("✅ Signup successful! Check your email for verification.");
+      // ✅ Redirect directly to home page after successful signup
+      router.push("/");
+      
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -127,7 +118,6 @@ export default function Signup() {
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[length:60px_60px] opacity-5"></div>
       </div>
 
-      {/* Gradient background elements */}
       <div 
         className="absolute -bottom-60 -right-60 w-[800px] h-[800px] rounded-full opacity-10 blur-xl"
         style={{ backgroundColor: savannahColors.primary }}
@@ -137,7 +127,6 @@ export default function Signup() {
         style={{ backgroundColor: savannahColors.secondary }}
       />
 
-      {/* Form Container */}
       <motion.div
         className="w-full max-w-md p-8 rounded-2xl relative z-10"
         initial={{ opacity: 0, y: -30 }}
@@ -197,326 +186,292 @@ export default function Signup() {
           </motion.div>
         )}
 
-        {!verified && success && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-3 rounded-lg text-center text-sm"
-            style={{
-              backgroundColor: `${savannahColors.success}10`,
-              color: savannahColors.success,
-              border: `1px solid ${savannahColors.success}20`
-            }}
-          >
-            {success}
-          </motion.div>
-        )}
-
-        {verified && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-3 rounded-lg text-center text-sm"
-            style={{
-              backgroundColor: `${savannahColors.success}10`,
-              color: savannahColors.success,
-              border: `1px solid ${savannahColors.success}20`
-            }}
-          >
-            🎉 Your email is verified! Please log in.
-          </motion.div>
-        )}
-
-        {!verified && (
-          <>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label 
-                  htmlFor="name" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  Full Name
-                </label>
-                <motion.div whileHover={{ y: -1 }}>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  />
-                </motion.div>
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="email" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  Email Address
-                </label>
-                <motion.div whileHover={{ y: -1 }}>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  />
-                </motion.div>
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="organization" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  Organization / Institution
-                </label>
-                <motion.div whileHover={{ y: -1 }} className="relative">
-                  <Building2 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" 
-                    style={{ color: savannahColors.primary }} 
-                  />
-                  <input
-                    type="text"
-                    name="organization"
-                    value={formData.organization}
-                    onChange={handleChange}
-                    required
-                    placeholder="e.g., University, School, Company"
-                    className="w-full pl-10 pr-4 p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  />
-                </motion.div>
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="password" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  Password
-                </label>
-                <motion.div whileHover={{ y: -1 }} className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  />
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3"
-                    whileHover={{ scale: 1.1 }}
-                    style={{ color: savannahColors.dark }}
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </motion.button>
-                </motion.div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Password must be at least 4 characters
-                </p>
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="confirmPassword" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  Confirm Password
-                </label>
-                <motion.div whileHover={{ y: -1 }} className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  />
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3"
-                    whileHover={{ scale: 1.1 }}
-                    style={{ color: savannahColors.dark }}
-                  >
-                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                  </motion.button>
-                </motion.div>
-                {formData.confirmPassword && (
-                  <div className="flex items-center mt-1">
-                    {passwordsMatch ? (
-                      <FaCheckCircle className="text-green-500 mr-1" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500 mr-1" />
-                    )}
-                    <span className={`text-xs font-medium ${passwordsMatch ? "text-green-500" : "text-red-500"}`}>
-                      {passwordsMatch ? "Passwords match" : "Passwords do not match"}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="role" 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: savannahColors.dark }}
-                >
-                  I am a
-                </label>
-                <motion.div whileHover={{ y: -1 }} className="relative">
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="w-full p-3 rounded-xl text-sm appearance-none focus:outline-none focus:ring-2 transition-all cursor-pointer"
-                    style={{
-                      backgroundColor: 'white',
-                      border: `1px solid ${savannahColors.dark}15`,
-                      color: savannahColors.dark,
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
-                    onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
-                    disabled={loading}
-                  >
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher / Mentor</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </motion.div>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  required
-                  className="w-4 h-4 mr-2 rounded"
-                  style={{
-                    backgroundColor: 'white',
-                    border: `1px solid ${savannahColors.dark}15`,
-                  }}
-                />
-                <span className="text-xs" style={{ color: savannahColors.dark }}>
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    onClick={() => router.push("/terms")}
-                    className="font-semibold"
-                    style={{ color: savannahColors.primary }}
-                  >
-                    Terms of Service
-                  </button>{" "}
-                  and{" "}
-                  <button
-                    type="button"
-                    onClick={() => router.push("/privacy")}
-                    className="font-semibold"
-                    style={{ color: savannahColors.primary }}
-                  >
-                    Privacy Policy
-                  </button>
-                </span>
-              </div>
-
-              <motion.button
-                type="submit"
-                className="w-full p-3 rounded-xl text-sm font-bold tracking-tight relative overflow-hidden"
-                disabled={loading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  background: `linear-gradient(45deg, ${savannahColors.primary}, ${savannahColors.secondary})`,
-                  color: 'white',
-                  boxShadow: `0 4px 14px ${savannahColors.primary}40`
-                }}
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                    />
-                  </div>
-                ) : (
-                  <span>Create {formData.role === 'teacher' ? 'Teacher' : 'Student'} Account</span>
-                )}
-              </motion.button>
-            </form>
-
-            <motion.p 
-              className="mt-6 text-center text-sm"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label 
+              htmlFor="name" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
               style={{ color: savannahColors.dark }}
             >
-              Already have an account?{' '}
+              Full Name
+            </label>
+            <motion.div whileHover={{ y: -1 }}>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              />
+            </motion.div>
+          </div>
+
+          <div>
+            <label 
+              htmlFor="email" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: savannahColors.dark }}
+            >
+              Email Address
+            </label>
+            <motion.div whileHover={{ y: -1 }}>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              />
+            </motion.div>
+          </div>
+
+          <div>
+            <label 
+              htmlFor="organization" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: savannahColors.dark }}
+            >
+              Organization / Institution
+            </label>
+            <motion.div whileHover={{ y: -1 }} className="relative">
+              <Building2 
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" 
+                style={{ color: savannahColors.primary }} 
+              />
+              <input
+                type="text"
+                name="organization"
+                value={formData.organization}
+                onChange={handleChange}
+                required
+                placeholder="e.g., University, School, Company"
+                className="w-full pl-10 pr-4 p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              />
+            </motion.div>
+          </div>
+
+          <div>
+            <label 
+              htmlFor="password" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: savannahColors.dark }}
+            >
+              Password
+            </label>
+            <motion.div whileHover={{ y: -1 }} className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              />
               <motion.button
                 type="button"
-                onClick={() => router.push("/login")}
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3"
+                whileHover={{ scale: 1.1 }}
+                style={{ color: savannahColors.dark }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </motion.button>
+            </motion.div>
+            <p className="text-xs text-gray-500 mt-1">
+              Password must be at least 4 characters
+            </p>
+          </div>
+
+          <div>
+            <label 
+              htmlFor="confirmPassword" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: savannahColors.dark }}
+            >
+              Confirm Password
+            </label>
+            <motion.div whileHover={{ y: -1 }} className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              />
+              <motion.button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-3"
+                whileHover={{ scale: 1.1 }}
+                style={{ color: savannahColors.dark }}
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </motion.button>
+            </motion.div>
+            {formData.confirmPassword && (
+              <div className="flex items-center mt-1">
+                {passwordsMatch ? (
+                  <FaCheckCircle className="text-green-500 mr-1" />
+                ) : (
+                  <FaTimesCircle className="text-red-500 mr-1" />
+                )}
+                <span className={`text-xs font-medium ${passwordsMatch ? "text-green-500" : "text-red-500"}`}>
+                  {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label 
+              htmlFor="role" 
+              className="block text-xs font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: savannahColors.dark }}
+            >
+              I am a
+            </label>
+            <motion.div whileHover={{ y: -1 }} className="relative">
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full p-3 rounded-xl text-sm appearance-none focus:outline-none focus:ring-2 transition-all cursor-pointer"
+                style={{
+                  backgroundColor: 'white',
+                  border: `1px solid ${savannahColors.dark}15`,
+                  color: savannahColors.dark,
+                }}
+                onFocus={(e) => e.target.style.borderColor = savannahColors.primary}
+                onBlur={(e) => e.target.style.borderColor = `${savannahColors.dark}15`}
+                disabled={loading}
+              >
+                <option value="student">Student</option>
+                <option value="teacher">Teacher / Mentor</option>
+              </select>
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              required
+              className="w-4 h-4 mr-2 rounded"
+              style={{
+                backgroundColor: 'white',
+                border: `1px solid ${savannahColors.dark}15`,
+              }}
+            />
+            <span className="text-xs" style={{ color: savannahColors.dark }}>
+              I agree to the{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/terms")}
                 className="font-semibold"
-                whileHover={{ x: 2 }}
                 style={{ color: savannahColors.primary }}
               >
-                Sign in here
-              </motion.button>
-            </motion.p>
-          </>
-        )}
+                Terms of Service
+              </button>{" "}
+              and{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/privacy")}
+                className="font-semibold"
+                style={{ color: savannahColors.primary }}
+              >
+                Privacy Policy
+              </button>
+            </span>
+          </div>
+
+          <motion.button
+            type="submit"
+            className="w-full p-3 rounded-xl text-sm font-bold tracking-tight relative overflow-hidden"
+            disabled={loading}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              background: `linear-gradient(45deg, ${savannahColors.primary}, ${savannahColors.secondary})`,
+              color: 'white',
+              boxShadow: `0 4px 14px ${savannahColors.primary}40`
+            }}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                />
+              </div>
+            ) : (
+              <span>Create {formData.role === 'teacher' ? 'Teacher' : 'Student'} Account</span>
+            )}
+          </motion.button>
+        </form>
+
+        <motion.p 
+          className="mt-6 text-center text-sm"
+          style={{ color: savannahColors.dark }}
+        >
+          Already have an account?{' '}
+          <motion.button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="font-semibold"
+            whileHover={{ x: 2 }}
+            style={{ color: savannahColors.primary }}
+          >
+            Sign in here
+          </motion.button>
+        </motion.p>
       </motion.div>
     </div>
   );
