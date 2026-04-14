@@ -2,8 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import crypto from "crypto";
-import { sendVerificationEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -24,15 +22,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Email already in use." }, { status: 409 });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash password (10 rounds is sufficient)
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
-
-    // Convert role to match UserRole - use string literals instead of enum
+    // Convert role
     let validRole: string;
     if (role === "teacher" || role === "TEACHER") {
       validRole = "TEACHER";
@@ -40,59 +33,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       validRole = "STUDENT";
     }
 
-    let newUser;
-    try {
-      // Create user with organization
-      newUser = await prisma.user.create({
-        data: {
-          name,
-          email: normalizedEmail,
-          organization: organization,
-          password: hashedPassword,
-          role: validRole as any, // Type assertion to bypass type checking
-          isVerified: false,
-        },
-      });
-
-      // Create verification token
-      await prisma.verificationToken.create({
-        data: {
-          identifier: normalizedEmail,
-          token: verificationToken,
-          expires: expiresAt,
-        },
-      });
-    } catch (dbError) {
-      console.error("❌ Database Error:", dbError);
-      return NextResponse.json({ error: "Database error." }, { status: 500 });
-    }
+    // Create user - set isVerified to true (no email verification needed)
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email: normalizedEmail,
+        organization: organization,
+        password: hashedPassword,
+        role: validRole as any,
+        isVerified: true, // ✅ KEY CHANGE: Set to true
+      },
+    });
 
     console.log("✅ User created:", newUser);
 
-    // Send verification email
-    try {
-      await sendVerificationEmail(newUser.email, verificationToken);
-    } catch (emailError) {
-      console.error("❌ Email send failed:", emailError);
-      
-      // Clean up - delete user if email fails
-      try {
-        await prisma.user.delete({ where: { id: newUser.id } });
-        await prisma.verificationToken.delete({
-          where: { token: verificationToken }
-        });
-      } catch (deleteError) {
-        console.error("❌ Cleanup failed:", deleteError);
-      }
-
-      return NextResponse.json(
-        { error: "Signup failed: Could not send verification email." },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json(
-      { message: "Signup successful! Check your email for verification." },
+      { message: "Signup successful! You can now log in.", userId: newUser.id },
       { status: 201 }
     );
   } catch (error) {

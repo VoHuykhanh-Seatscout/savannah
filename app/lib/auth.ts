@@ -71,34 +71,31 @@ export const authOptions: NextAuthOptions = {
         role: { label: "Role", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) {
-          return null;
-        }
+  if (!credentials?.email) {
+    return null;
+  }
+
+  console.log("Credentials:", credentials);
+
+  const user = await prisma.user.findUnique({
+    where: { email: credentials.email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      profileImage: true,
+      password: true,
+      role: true,
+      isVerified: true,
+      phone: true,
+      organization: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("❌ User not found.");
+  }
       
-        console.log("Credentials:", credentials);
-      
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            profileImage: true,
-            password: true,
-            role: true,
-            isVerified: true,
-            phone: true,
-            organization: true,
-          },
-        });
-      
-        if (!user) {
-          throw new Error("❌ User not found.");
-        }
-      
-        if (!user.isVerified) {
-          throw new Error("⚠ Your email is not verified. Please check your inbox.");
-        }
       
         if (credentials.role && user.role.toUpperCase() !== credentials.role.toUpperCase()) {
           console.log("Role Mismatch:", {
